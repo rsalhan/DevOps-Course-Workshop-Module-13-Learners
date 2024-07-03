@@ -1,8 +1,14 @@
 import logging
 logging.basicConfig(level=logging.INFO)
 
+from opencensus.ext.azure.log_exporter import AzureLogHandler 
+
 from flask import Flask, render_template, request
 from datetime import datetime, timezone
+
+from opencensus.ext.azure.trace_exporter import AzureExporter
+from opencensus.ext.flask.flask_middleware import FlaskMiddleware
+from opencensus.trace.samplers import ProbabilitySampler
 
 from werkzeug.utils import redirect
 from flask_config import Config
@@ -12,6 +18,14 @@ from products import create_product_download
 import requests
 app = Flask(__name__)
 app.config.from_object(Config)
+
+middleware = FlaskMiddleware(
+    app,
+    exporter=AzureExporter(),
+    sampler=ProbabilitySampler(rate=1.0),
+)
+
+app.logger.addHandler(AzureLogHandler())
 
 initialise_database(app)
 initialise_scheduled_jobs(app)
